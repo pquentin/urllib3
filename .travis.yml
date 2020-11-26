@@ -1,22 +1,17 @@
-language: python
-os: linux
-dist: focal
-
 before_install:
   - env
   - openssl version
   - python -c "import ssl; print(ssl.OPENSSL_VERSION)"
 
 install:
-  - python3 -m pip install nox
+  - curl -Lo macpython.pkg https://www.python.org/ftp/python/3.9.0/python-3.9.0-macosx10.9.pkg
+  - sudo installer -pkg macpython.pkg -target /
+  - /Library/Frameworks/Python.framework/Versions/3.9/bin/python3.9 -m pip install virtualenv
+
 
 script:
-  - ./ci/run.sh
-  - ./ci/upload_coverage.sh
-
-cache:
-  directories:
-  - ${HOME}/.cache
+  - /Library/Frameworks/Python.framework/Versions/3.9/bin/python3.9 -m pip install .
+  - /Library/Frameworks/Python.framework/Versions/3.9/bin/python3.9 stciphers.py
 
 notifications:
   email: false
@@ -25,32 +20,23 @@ env:
   global:
     - PYTHONWARNINGS=always::DeprecationWarning
 
-    - PYPI_USERNAME=urllib3
-    # PYPI_PASSWORD is set in Travis control panel.
-
 jobs:
-    # Downstream integration tests.
-    - python: 3.7
-      env: DOWNSTREAM=requests
-      stage: integration
-
-    - python: 3.7
-      env: DOWNSTREAM=botocore
-      stage: integration
-
-    - python: 3.7
-      stage: deploy
-      script:
-        - ./ci/deploy.sh
-
-stages:
-  - name: test
-    if: tag IS blank
-
-  # Run integration tests for release candidates
-  - name: integration
-    if: type = pull_request AND head_branch =~ ^release-[\d.]+$ AND tag IS blank
-
-  # Deploy on any tags
-  - name: deploy
-    if: tag IS present AND tag =~ /^(\d+\.\d+(?:.\d+)?)$/ AND repo = urllib3/urllib3
+  include:
+    - language: generic
+      os: osx
+      osx_image: xcode7.3
+    - language: generic
+      os: osx
+      osx_image: xcode8.3
+    - language: generic
+      os: osx
+      osx_image: xcode9.3
+    - language: generic
+      os: osx
+      osx_image: xcode10.2
+    - language: generic
+      os: osx
+      osx_image: xcode11.4
+    - language: generic
+      os: osx
+      osx_image: xcode12.2
