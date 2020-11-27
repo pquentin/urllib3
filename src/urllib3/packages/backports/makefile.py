@@ -27,7 +27,7 @@ def backport_makefile(
     if writing:
         rawmode += "w"
     raw = SocketIO(self, rawmode)
-    self._makefile_refs += 1
+    self._io_refs += 1
     if buffering is None:
         buffering = -1
     if buffering < 0:
