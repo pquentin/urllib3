@@ -417,7 +417,7 @@ try:
     CoreFoundation.CFDictionaryRef = CFDictionaryRef
 
 except AttributeError:
-    raise ImportError("Error initializing ctypes") from None
+    raise ImportError("Error initializing ctypes")
 
 
 class CFConst:

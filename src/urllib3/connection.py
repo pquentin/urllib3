@@ -201,17 +201,15 @@ class HTTPConnection(_HTTPConnection):
                 socket_options=self.socket_options,
             )
         except socket.gaierror as e:
-            raise NameResolutionError(self.host, self, e) from e
-        except SocketTimeout as e:
+            raise NameResolutionError(self.host, self, e)
+        except SocketTimeout:
             raise ConnectTimeoutError(
                 self,
                 f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
-            ) from e
+            )
 
         except OSError as e:
-            raise NewConnectionError(
-                self, f"Failed to establish a new connection: {e}"
-            ) from e
+            raise NewConnectionError(self, f"Failed to establish a new connection: {e}")
 
         return conn
 
@@ -575,11 +573,10 @@ class HTTPSConnection(HTTPConnection):
             )
         except Exception as e:
             # Wrap into an HTTPSProxyError for easier diagnosis.
-            # Original exception is available on original_error and
-            # as __cause__.
+            # Original exception is available on original_error
             raise HTTPSProxyError(
                 f"Unable to establish a TLS connection to {hostname}", e
-            ) from e
+            )
 
 
 def _match_hostname(cert: _TYPE_PEER_CERT_RET, asserted_hostname: str) -> None:
