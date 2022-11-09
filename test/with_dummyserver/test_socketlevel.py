@@ -1545,7 +1545,10 @@ class TestSSL(SocketDummyServerTestCase):
             self.host, self.port, ca_certs=DEFAULT_CA, retries=False
         ) as pool:
             response = pool.request(
-                "GET", "/", preload_content=preload_content, decode_content=False
+                "GET",
+                "/",
+                preload_content=preload_content,
+                decode_content=True,
             )
             data = response.data if preload_content else response.read(read_amt)
             assert len(data) == content_length

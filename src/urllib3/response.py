@@ -712,6 +712,7 @@ class HTTPResponse(BaseHTTPResponse):
                     amt -= chunk_amt
                 else:
                     chunk_amt = max_chunk_amt
+                print("read", chunk_amt)
                 data = self._fp.read(chunk_amt)
                 if not data:
                     break
@@ -720,6 +721,7 @@ class HTTPResponse(BaseHTTPResponse):
             return buffer.getvalue()
         else:
             # StringIO doesn't like amt=None
+            print("read", amt)
             return self._fp.read(amt) if amt is not None else self._fp.read()
 
     def _raw_read(
