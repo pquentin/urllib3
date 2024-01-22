@@ -147,6 +147,7 @@ Added
 Changed
 -------
 
+* Changed encoding of ``str`` body chunks from UTF-8 to ISO-8859-1, and encoding of ``str`` body from ISO-8859-1 to UTF-8. This change was accidental. In an upcoming release, body chunks will also be encoded as UTF-8, to ensure all ``str`` bodies get encoded to UTF-8, for consistency. If you need a specific encoding, use ``str.encode`` to pass already-encoded bytes to urllib3 (`#3053 <https://github.com/urllib3/urllib3/issues/3053>`__).
 * Changed ``urllib3.response.HTTPResponse.read`` to respect the semantics of ``io.BufferedIOBase`` regardless of compression. Specifically, this method:
 
   * Only returns an empty bytes object to indicate EOF (that is, the response has been fully consumed).
