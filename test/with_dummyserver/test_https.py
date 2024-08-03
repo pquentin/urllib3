@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import concurrent.futures
 import contextlib
 import datetime
@@ -8,6 +9,7 @@ import shutil
 import ssl
 import tempfile
 import time
+import threading
 import typing
 import warnings
 from pathlib import Path
@@ -68,6 +70,25 @@ CLIENT_NO_INTERMEDIATE_PEM = "client_no_intermediate.pem"
 CLIENT_INTERMEDIATE_KEY = "client_intermediate.key"
 PASSWORD_CLIENT_KEYFILE = "client_password.key"
 CLIENT_CERT = CLIENT_INTERMEDIATE_PEM
+
+class FakeRLock:
+    def __init__(self):
+        self.lock_count = 0
+        self.lock = threading.RLock()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+    def acquire(self, *args, **kwargs):
+        self.lock_count += 1
+        self.lock.acquire(*args, **kwargs)
+
+    def release(self, *args, **kwargs):
+        self.lock_count = 0
+        self.lock.release(*args, **kwargs)
 
 
 class BaseTestHTTPS(HTTPSHypercornDummyServerTestCase):
@@ -1044,6 +1065,35 @@ class BaseTestHTTPS(HTTPSHypercornDummyServerTestCase):
             assert http2_probe._values() == {(self.host, self.port): None}
         finally:
             urllib3.http2.extract_from_urllib3()
+
+    def test_http2_probe_defensive_keyboard_interrupt(self, monkeypatch) -> None:
+        # acquire_and_get accesses self._cache_values[key] twice. To trigger
+        # the defensive behavior, we want to raise a KeyboardInterrupt
+        # exception on the second access.
+        access_count = 0
+
+        class FakeDict(collections.UserDict):
+            def __getitem__(self, key):
+                nonlocal access_count
+                access_count +=1
+                if access_count < 2:
+                    return self.data[key]
+                raise KeyboardInterrupt()
+
+
+        monkeypatch.setattr(http2_probe, "RLock", FakeRLock)
+
+        probe = http2_probe._HTTP2ProbeCache()
+        probe._cache_values = FakeDict()
+
+        with pytest.raises(KeyboardInterrupt):
+            probe.acquire_and_get("localhost", 443)
+
+        # Check that the lock was released
+        assert access_count == 2
+        key_lock = probe._cache_locks[("localhost", 443)]
+        assert key_lock.lock_count == 0
+
 
     def test_http2_probe_blocked_per_thread(self) -> None:
         state, current_thread, last_action = None, None, time.perf_counter()

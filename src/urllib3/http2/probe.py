@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from threading import RLock
 
 
 class _HTTP2ProbeCache:
@@ -12,7 +13,7 @@ class _HTTP2ProbeCache:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._cache_locks: dict[tuple[str, int], threading.RLock] = {}
+        self._cache_locks: dict[tuple[str, int], RLock] = {}
         self._cache_values: dict[tuple[str, int], bool | None] = {}
 
     def acquire_and_get(self, host: str, port: int) -> bool | None:
@@ -27,7 +28,7 @@ class _HTTP2ProbeCache:
                 if value is not None:
                     return value
             except KeyError:
-                self._cache_locks[key] = threading.RLock()
+                self._cache_locks[key] = RLock()
                 self._cache_values[key] = None
 
         # If the value is unknown, we acquire the lock to signal
@@ -44,8 +45,7 @@ class _HTTP2ProbeCache:
         # KeyError shouldn't be possible.
         except BaseException as e:
             assert not isinstance(e, KeyError)
-            if value is not None:
-                key_lock.release()
+            key_lock.release()
             raise
 
         return value
