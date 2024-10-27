@@ -79,7 +79,7 @@ def tests_impl(
         *(("--integration",) if integration else ()),
         f"--color={'yes' if 'GITHUB_ACTIONS' in os.environ else 'auto'}",
         "--tb=native",
-        "--durations=10",
+        "--durations=100",
         "--strict-config",
         "--strict-markers",
         "--disable-socket",
