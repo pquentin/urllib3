@@ -18,7 +18,7 @@ import typing
 import zlib
 from collections import OrderedDict
 from pathlib import Path
-from test import LONG_TIMEOUT, SHORT_TIMEOUT, notWindows, resolvesLocalhostFQDN
+from tests import LONG_TIMEOUT, SHORT_TIMEOUT, notWindows, resolvesLocalhostFQDN
 from threading import Event
 from unittest import mock
 

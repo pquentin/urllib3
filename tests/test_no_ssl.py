@@ -8,7 +8,7 @@ Test what happens if Python was built without SSL
 from __future__ import annotations
 
 import sys
-from test import ImportBlocker, ModuleStash
+from tests import ImportBlocker, ModuleStash
 
 import pytest
 

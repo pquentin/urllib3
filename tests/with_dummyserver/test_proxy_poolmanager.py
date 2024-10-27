@@ -10,8 +10,8 @@ import shutil
 import socket
 import ssl
 import tempfile
-from test import LONG_TIMEOUT, SHORT_TIMEOUT, resolvesLocalhostFQDN, withPyOpenSSL
-from test.conftest import ServerConfig
+from tests import LONG_TIMEOUT, SHORT_TIMEOUT, resolvesLocalhostFQDN, withPyOpenSSL
+from tests.conftest import ServerConfig
 
 import pytest
 import trustme

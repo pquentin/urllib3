@@ -7,7 +7,7 @@ import socket
 import time
 import typing
 import warnings
-from test import LONG_TIMEOUT, SHORT_TIMEOUT
+from tests import LONG_TIMEOUT, SHORT_TIMEOUT
 from threading import Event
 from unittest import mock
 from urllib.parse import urlencode
@@ -35,7 +35,7 @@ from urllib3.util.retry import RequestHistory, Retry
 from urllib3.util.timeout import _TYPE_TIMEOUT, Timeout
 
 from .. import INVALID_SOURCE_ADDRESSES, TARPIT_HOST, VALID_SOURCE_ADDRESSES
-from ..port_helpers import find_unused_port
+from test.support.socket_helper import find_unused_port
 
 
 def wait_for_socket(ready_event: Event) -> None:
@@ -385,6 +385,10 @@ class TestConnectionPool(HypercornDummyServerTestCase):
             finally:
                 conn.close()
                 s.close()
+
+    def test_find_unused_port_time(self) -> None:
+        port = find_unused_port()
+        assert port is not None
 
     def test_connection_error_retries(self) -> None:
         """ECONNREFUSED error should raise a connection error, with retries"""

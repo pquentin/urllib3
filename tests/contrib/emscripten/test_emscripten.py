@@ -7,7 +7,7 @@ import pytest
 
 from urllib3.fields import _TYPE_FIELD_VALUE_TUPLE
 
-from ...port_helpers import find_unused_port
+from test.support.socket_helper import find_unused_port
 
 if sys.version_info < (3, 11):
     # pyodide only works on 3.11+

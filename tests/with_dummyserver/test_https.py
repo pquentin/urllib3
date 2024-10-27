@@ -11,14 +11,14 @@ import time
 import typing
 import warnings
 from pathlib import Path
-from test import (
+from tests import (
     LONG_TIMEOUT,
     SHORT_TIMEOUT,
     TARPIT_HOST,
     requires_network,
     resolvesLocalhostFQDN,
 )
-from test.conftest import ServerConfig
+from tests.conftest import ServerConfig
 from unittest import mock
 
 import pytest

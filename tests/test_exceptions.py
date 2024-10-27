@@ -3,7 +3,7 @@ from __future__ import annotations
 import pickle
 import socket
 from email.errors import MessageDefect
-from test import DUMMY_POOL
+from tests import DUMMY_POOL
 
 import pytest
 
