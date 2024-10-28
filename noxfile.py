@@ -74,9 +74,6 @@ def tests_impl(
         "--durations=100",
         "--strict-config",
         "--strict-markers",
-        "--disable-socket",
-        "--allow-unix-socket",
-        "--allow-hosts=localhost,::1,127.0.0.0,240.0.0.0",  # See `TARPIT_HOST`
         *pytest_extra_args,
         *(session.posargs or ("tests/",)),
         env=pytest_session_envvars,
