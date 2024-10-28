@@ -71,4 +71,5 @@ jobs:
           path: profile.html
 
       - name: "Print hosts"
-        run: "cat c:\Windows\System32\Drivers\etc\hosts"
+        run: |
+          cat "c:\Windows\System32\Drivers\etc\hosts"
