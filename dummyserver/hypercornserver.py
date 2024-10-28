@@ -56,7 +56,11 @@ def run_hypercorn_in_thread(
             config.ca_certs = certs["ca_certs"]
         if "alpn_protocols" in certs:
             config.alpn_protocols = certs["alpn_protocols"]
-    config.bind = [f"{host}:0"]
+
+    if host == "localhost":
+        config.bind = ["127.0.0.1:0", "[::]:0"]
+    else:
+        config.bind = [f"{host}:0"]
 
     ready_event = threading.Event()
     shutdown_event = threading.Event()
