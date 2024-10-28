@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import socket
-import typing
 import time
+import typing
 
 from ..exceptions import LocationParseError
 from .timeout import _DEFAULT_TIMEOUT, _TYPE_TIMEOUT
@@ -43,9 +43,10 @@ def create_connection(
     An host of '' or port 0 tells the OS to use the default.
     """
 
-    print("create_connection", f"{address=}, {timeout=}, {source_address=}, {socket_options=}")
-    start = time.perf_counter()
-
+    print(
+        "create_connection",
+        f"{address=}, {timeout=}, {source_address=}, {socket_options=}",
+    )
 
     host, port = address
     if host.startswith("["):
@@ -81,7 +82,6 @@ def create_connection(
             connect_start = time.perf_counter()
             sock.connect(sa)
             print("socket OK!", (time.perf_counter() - connect_start) * 1000, "ms")
-            connect_end = time.perf_counter()
             # Break explicitly a reference cycle
             err = None
             print("done", (time.perf_counter() - getai) * 1000, "ms")

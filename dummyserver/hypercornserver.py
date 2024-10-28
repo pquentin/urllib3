@@ -3,17 +3,60 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import functools
+import socket
 import sys
 import threading
+import traceback
 import typing
 
 import hypercorn
+import hypercorn.config
 import hypercorn.trio
 import hypercorn.typing
 import trio
 from quart_trio import QuartTrio
 
 from urllib3.util.url import parse_url
+
+
+class Config(hypercorn.Config):
+    def create_sockets(self) -> hypercorn.config.Sockets:
+        print(self.bind)
+        assert len(self.bind) == 1
+        secure_sockets, insecure_sockets = [], []
+        if self.ssl_enabled:
+            secure_sockets = self._create_urllib3_sockets(self.bind[0])
+        else:
+            insecure_sockets = self._create_urllib3_sockets(self.bind[0])
+        return hypercorn.config.Sockets(
+            secure_sockets, insecure_sockets, quic_sockets=[]
+        )
+
+    def _create_urllib3_sockets(self, bind: str) -> list[socket.socket]:
+        sockets = []
+
+        bind = bind.replace("[", "").replace("]", "")
+        host = bind.rsplit(":", 1)[0]
+        port = 0  # Get a random port
+        family = socket.AF_INET6 if ":" in host else socket.AF_UNSPEC
+
+        for res in socket.getaddrinfo(
+            host, port, family, socket.SOCK_STREAM, 0, socket.AI_PASSIVE
+        ):
+            af, socktype, proto, canonname, sockadddr = res
+
+            sock = socket.socket(af, socket.SOCK_STREAM, proto)
+
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+            sock.setblocking(False)
+            sock.bind((host, port))
+            port = sock.getsockname()[1]
+            sock.set_inheritable(True)
+            sockets.append(sock)
+
+        return sockets
 
 
 # https://github.com/pgjones/hypercorn/blob/19dfb96411575a6a647cdea63fa581b48ebb9180/src/hypercorn/utils.py#L172-L178
@@ -25,28 +68,35 @@ async def graceful_shutdown(shutdown_event: threading.Event) -> None:
 
 
 async def _start_server(
-    config: hypercorn.Config,
+    config: Config,
     app: QuartTrio,
     ready_event: threading.Event,
     shutdown_event: threading.Event,
 ) -> None:
     async with trio.open_nursery() as nursery:
-        config.bind = await nursery.start(
-            functools.partial(
-                hypercorn.trio.serve,
-                app,
-                config,
-                shutdown_trigger=functools.partial(graceful_shutdown, shutdown_event),
+        try:
+            config.bind = await nursery.start(
+                functools.partial(
+                    hypercorn.trio.serve,
+                    app,
+                    config,
+                    shutdown_trigger=functools.partial(
+                        graceful_shutdown, shutdown_event
+                    ),
+                )
             )
-        )
-        ready_event.set()
+            ready_event.set()
+        except Exception:
+            print("Starting server failed", file=sys.stderr)
+            traceback.print_exc()
+            raise
 
 
 @contextlib.contextmanager
 def run_hypercorn_in_thread(
     host: str, certs: dict[str, typing.Any] | None, app: hypercorn.typing.ASGIFramework
 ) -> typing.Iterator[int]:
-    config = hypercorn.Config()
+    config = Config()
     if certs:
         config.certfile = certs["certfile"]
         config.keyfile = certs["keyfile"]
@@ -57,10 +107,7 @@ def run_hypercorn_in_thread(
         if "alpn_protocols" in certs:
             config.alpn_protocols = certs["alpn_protocols"]
 
-    if host == "localhost":
-        config.bind = ["127.0.0.1:0", "[::]:0"]
-    else:
-        config.bind = [f"{host}:0"]
+    config.bind = [f"{host}:0"]
 
     ready_event = threading.Event()
     shutdown_event = threading.Event()
@@ -93,7 +140,7 @@ def main() -> int:
     # For debugging dummyserver itself - PYTHONPATH=src python -m dummyserver.hypercornserver
     from .app import hypercorn_app
 
-    config = hypercorn.Config()
+    config = Config()
     config.bind = ["localhost:0"]
     ready_event = threading.Event()
     shutdown_event = threading.Event()
