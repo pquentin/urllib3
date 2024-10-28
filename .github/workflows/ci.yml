@@ -110,13 +110,6 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python-version }}
           NOX_SESSION: ${{ matrix.nox-session }}
 
-      - name: "Upload coverage data"
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: coverage-data-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.experimental }}-${{ matrix.nox-session }}
-          path: ".coverage.*"
-          if-no-files-found: error
-
 
   coverage:
     if: always()
