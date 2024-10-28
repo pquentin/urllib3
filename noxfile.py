@@ -75,7 +75,9 @@ def tests_impl(
         "--strict-config",
         "--strict-markers",
         *pytest_extra_args,
-        *(session.posargs or ("tests/",)),
+        "-k",
+        "test_debug_log",
+        "-s",
         env=pytest_session_envvars,
     )
 

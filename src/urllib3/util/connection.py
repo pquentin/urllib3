@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import socket
 import typing
+import time
 
 from ..exceptions import LocationParseError
 from .timeout import _DEFAULT_TIMEOUT, _TYPE_TIMEOUT
@@ -42,6 +43,10 @@ def create_connection(
     An host of '' or port 0 tells the OS to use the default.
     """
 
+    print("create_connection", f"{address=}, {timeout=}, {source_address=}, {socket_options=}")
+    start = time.perf_counter()
+
+
     host, port = address
     if host.startswith("["):
         host = host.strip("[]")
@@ -57,7 +62,10 @@ def create_connection(
     except UnicodeError:
         raise LocationParseError(f"'{host}', label empty or too long") from None
 
+    print(host, port, family)
+    getai = time.perf_counter()
     for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+        print(res)
         af, socktype, proto, canonname, sa = res
         sock = None
         try:
@@ -70,12 +78,17 @@ def create_connection(
                 sock.settimeout(timeout)
             if source_address:
                 sock.bind(source_address)
+            connect_start = time.perf_counter()
             sock.connect(sa)
+            print("socket OK!", (time.perf_counter() - connect_start) * 1000, "ms")
+            connect_end = time.perf_counter()
             # Break explicitly a reference cycle
             err = None
+            print("done", (time.perf_counter() - getai) * 1000, "ms")
             return sock
 
         except OSError as _:
+            print("socket error!", (time.perf_counter() - connect_start) * 1000, "ms")
             err = _
             if sock is not None:
                 sock.close()

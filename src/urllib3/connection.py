@@ -195,6 +195,7 @@ class HTTPConnection(_HTTPConnection):
 
         :return: New socket connection.
         """
+        print(self.socket_options, HTTPConnection.default_socket_options)
         try:
             sock = connection.create_connection(
                 (self._dns_host, self.port),
