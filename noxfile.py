@@ -65,15 +65,9 @@ def tests_impl(
     # Inspired from https://hynek.me/articles/ditch-codecov-python/
     # We use parallel mode and then combine in a later CI step
     session.run(
-        "python",
-        *(("-bb",) if byte_string_comparisons else ()),
-        "-m",
-        "coverage",
-        "run",
-        "--parallel-mode",
+        "pyinstrument",
         "-m",
         "pytest",
-        *("--memray", "--hide-memray-summary") if memray_supported else (),
         "-v",
         "-ra",
         *(("--integration",) if integration else ()),
