@@ -59,6 +59,10 @@ def tests_impl(
     # We use parallel mode and then combine in a later CI step
     session.run(
         "pyinstrument",
+        "-r",
+        "html",
+        "-o",
+        "profile.html",
         "--show-all",
         "-m",
         "pytest",
