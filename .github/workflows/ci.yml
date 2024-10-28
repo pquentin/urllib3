@@ -39,10 +39,9 @@ jobs:
           - macos-15
           - windows-latest
           - ubuntu-22.04
-        nox-session: ['']
 
     runs-on: ${{ matrix.os }}
-    name: ${{ fromJson('{"macos-15":"macOS","windows-latest":"Windows","ubuntu-latest":"Ubuntu","ubuntu-20.04":"Ubuntu 20.04 (OpenSSL 1.1.1)","ubuntu-22.04":"Ubuntu 22.04 (OpenSSL 3.0)"}')[matrix.os] }} ${{ matrix.python-version }} ${{ matrix.nox-session}}
+    name: ${{ fromJson('{"macos-15":"macOS","windows-latest":"Windows","ubuntu-latest":"Ubuntu","ubuntu-20.04":"Ubuntu 20.04 (OpenSSL 1.1.1)","ubuntu-22.04":"Ubuntu 22.04 (OpenSSL 3.0)"}')[matrix.os] }} ${{ matrix.python-version }}
     continue-on-error: true
     timeout-minutes: 30
     steps:
@@ -65,9 +64,8 @@ jobs:
         run: nox -s ${NOX_SESSION:-test-$PYTHON_VERSION}
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
-          NOX_SESSION: ${{ matrix.nox-session }}
           FORCE_COLOR: "1"
       - uses: actions/upload-artifact@v4
         with:
-          name: pyinstrument-profile
+          name: pyinstrument-profile-${{ matrix.python-version }}-${{ matrix.os }}
           path: profile.html
