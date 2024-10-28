@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import gc
 import socket
-from tests import resolvesLocalhostFQDN
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from tests import resolvesLocalhostFQDN
 from urllib3 import connection_from_url
 from urllib3.connectionpool import HTTPSConnectionPool
 from urllib3.exceptions import LocationValueError

@@ -11,14 +11,6 @@ import time
 import typing
 import warnings
 from pathlib import Path
-from tests import (
-    LONG_TIMEOUT,
-    SHORT_TIMEOUT,
-    TARPIT_HOST,
-    requires_network,
-    resolvesLocalhostFQDN,
-)
-from tests.conftest import ServerConfig
 from unittest import mock
 
 import pytest
@@ -35,6 +27,14 @@ from dummyserver.socketserver import (
     encrypt_key_pem,
 )
 from dummyserver.testcase import HTTPSHypercornDummyServerTestCase
+from tests import (
+    LONG_TIMEOUT,
+    SHORT_TIMEOUT,
+    TARPIT_HOST,
+    requires_network,
+    resolvesLocalhostFQDN,
+)
+from tests.conftest import ServerConfig
 from urllib3 import HTTPSConnectionPool
 from urllib3.connection import RECENT_DATE, HTTPSConnection, VerifiedHTTPSConnection
 from urllib3.exceptions import (

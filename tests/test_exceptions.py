@@ -3,10 +3,10 @@ from __future__ import annotations
 import pickle
 import socket
 from email.errors import MessageDefect
-from tests import DUMMY_POOL
 
 import pytest
 
+from tests import DUMMY_POOL
 from urllib3.connection import HTTPConnection
 from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import (

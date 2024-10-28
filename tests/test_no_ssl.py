@@ -8,9 +8,10 @@ Test what happens if Python was built without SSL
 from __future__ import annotations
 
 import sys
-from tests import ImportBlocker, ModuleStash
 
 import pytest
+
+from tests import ImportBlocker, ModuleStash
 
 ssl_blocker = ImportBlocker("ssl", "_ssl")
 module_stash = ModuleStash("urllib3")

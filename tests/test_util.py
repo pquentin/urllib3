@@ -8,13 +8,13 @@ import sys
 import typing
 import warnings
 from itertools import chain
-from tests import ImportBlocker, ModuleStash, notBrotli, notZstd, onlyBrotli, onlyZstd
 from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import urlparse
 
 import pytest
 
+from tests import ImportBlocker, ModuleStash, notBrotli, notZstd, onlyBrotli, onlyZstd
 from urllib3 import add_stderr_logger, disable_warnings
 from urllib3.connection import ProxyConfig
 from urllib3.exceptions import (

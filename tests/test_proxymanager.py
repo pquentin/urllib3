@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+from test.support.socket_helper import find_unused_port  # type: ignore[import-untyped]
+
 import pytest
 
 from urllib3.exceptions import MaxRetryError, NewConnectionError, ProxyError
 from urllib3.poolmanager import ProxyManager
 from urllib3.util.retry import Retry
 from urllib3.util.url import parse_url
-
-from test.support.socket_helper import find_unused_port
 
 
 class TestProxyManager:

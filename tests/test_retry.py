@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import datetime
-from tests import DUMMY_POOL
 from unittest import mock
 
 import pytest
 
+from tests import DUMMY_POOL
 from urllib3.exceptions import (
     ConnectTimeoutError,
     InvalidHeader,

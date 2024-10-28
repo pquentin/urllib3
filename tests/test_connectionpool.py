@@ -7,12 +7,12 @@ from http.client import HTTPException
 from queue import Empty
 from socket import error as SocketError
 from ssl import SSLError as BaseSSLError
-from tests import SHORT_TIMEOUT
 from unittest.mock import Mock, patch
 
 import pytest
 
 from dummyserver.socketserver import DEFAULT_CA
+from tests import SHORT_TIMEOUT
 from urllib3 import Retry
 from urllib3.connection import HTTPConnection
 from urllib3.connectionpool import (

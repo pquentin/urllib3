@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import shutil
-import sys
 import typing
 from pathlib import Path
 
@@ -41,12 +40,6 @@ def tests_impl(
     session.run("python", "-c", "import struct; print(struct.calcsize('P') * 8)")
     # Print OpenSSL information.
     session.run("python", "-m", "OpenSSL.debug")
-
-    memray_supported = True
-    if implementation_name != "cpython":
-        memray_supported = False
-    elif sys.platform == "win32":
-        memray_supported = False
 
     # Environment variables being passed to the pytest run.
     pytest_session_envvars = {
@@ -317,7 +310,7 @@ def mypy(session: nox.Session) -> None:
         "-p",
         "urllib3",
         "-p",
-        "test",
+        "tests",
     )
 
 

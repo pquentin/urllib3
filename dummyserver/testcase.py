@@ -5,7 +5,6 @@ import socket
 import ssl
 import threading
 import typing
-from tests import LONG_TIMEOUT
 
 import pytest
 
@@ -13,6 +12,7 @@ from dummyserver.app import hypercorn_app
 from dummyserver.asgi_proxy import ProxyApp
 from dummyserver.hypercornserver import run_hypercorn_in_thread
 from dummyserver.socketserver import DEFAULT_CERTS, HAS_IPV6, SocketServerThread
+from tests import LONG_TIMEOUT
 from urllib3.connection import HTTPConnection
 from urllib3.util.ssltransport import SSLTransport
 

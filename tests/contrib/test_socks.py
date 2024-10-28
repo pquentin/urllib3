@@ -5,7 +5,6 @@ import threading
 import typing
 from socket import getaddrinfo as real_getaddrinfo
 from socket import timeout as SocketTimeout
-from tests import SHORT_TIMEOUT
 from unittest.mock import Mock, patch
 
 import pytest
@@ -13,6 +12,7 @@ import socks as py_socks  # type: ignore[import-not-found]
 
 from dummyserver.socketserver import DEFAULT_CA, DEFAULT_CERTS
 from dummyserver.testcase import IPV4SocketDummyServerTestCase
+from tests import SHORT_TIMEOUT
 from urllib3.contrib import socks
 from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 

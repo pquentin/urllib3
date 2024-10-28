@@ -18,7 +18,6 @@ import typing
 import zlib
 from collections import OrderedDict
 from pathlib import Path
-from tests import LONG_TIMEOUT, SHORT_TIMEOUT, notWindows, resolvesLocalhostFQDN
 from threading import Event
 from unittest import mock
 
@@ -32,6 +31,7 @@ from dummyserver.socketserver import (
     get_unreachable_address,
 )
 from dummyserver.testcase import SocketDummyServerTestCase, consume_socket
+from tests import LONG_TIMEOUT, SHORT_TIMEOUT, notWindows, resolvesLocalhostFQDN
 from urllib3 import HTTPConnectionPool, HTTPSConnectionPool, ProxyManager, util
 from urllib3._collections import HTTPHeaderDict
 from urllib3.connection import HTTPConnection, _get_default_user_agent

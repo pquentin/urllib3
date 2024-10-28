@@ -9,11 +9,11 @@ import zlib
 from base64 import b64decode
 from http.client import IncompleteRead as httplib_IncompleteRead
 from io import BufferedReader, BytesIO, TextIOWrapper
-from tests import onlyBrotli, onlyZstd
 from unittest import mock
 
 import pytest
 
+from tests import onlyBrotli, onlyZstd
 from urllib3 import HTTPHeaderDict
 from urllib3.exceptions import (
     BodyNotHttplibCompatible,
@@ -1060,7 +1060,6 @@ class TestResponse:
 
         with pytest.raises(StopIteration):
             next(stream)
-
 
     def test_length_no_header(self) -> None:
         fp = BytesIO(b"12345")

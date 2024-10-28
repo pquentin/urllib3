@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import sys
 import typing
+from test.support.socket_helper import find_unused_port  # type: ignore[import-untyped]
 
 import pytest
 
 from urllib3.fields import _TYPE_FIELD_VALUE_TUPLE
-
-from test.support.socket_helper import find_unused_port
 
 if sys.version_info < (3, 11):
     # pyodide only works on 3.11+

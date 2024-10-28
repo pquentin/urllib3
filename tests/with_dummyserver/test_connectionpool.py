@@ -7,7 +7,7 @@ import socket
 import time
 import typing
 import warnings
-from tests import LONG_TIMEOUT, SHORT_TIMEOUT
+from test.support.socket_helper import find_unused_port  # type: ignore[import-untyped]
 from threading import Event
 from unittest import mock
 from urllib.parse import urlencode
@@ -16,6 +16,7 @@ import pytest
 
 from dummyserver.socketserver import NoIPv6Warning
 from dummyserver.testcase import HypercornDummyServerTestCase, SocketDummyServerTestCase
+from tests import LONG_TIMEOUT, SHORT_TIMEOUT
 from urllib3 import HTTPConnectionPool, encode_multipart_formdata
 from urllib3._collections import HTTPHeaderDict
 from urllib3.connection import _get_default_user_agent
@@ -35,7 +36,6 @@ from urllib3.util.retry import RequestHistory, Retry
 from urllib3.util.timeout import _TYPE_TIMEOUT, Timeout
 
 from .. import INVALID_SOURCE_ADDRESSES, TARPIT_HOST, VALID_SOURCE_ADDRESSES
-from test.support.socket_helper import find_unused_port
 
 
 def wait_for_socket(ready_event: Event) -> None:
