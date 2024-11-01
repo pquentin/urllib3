@@ -41,46 +41,37 @@ jobs:
           - ubuntu-22.04
         nox-session: ['']
         include:
-          - experimental: false
           # integration
           # 3.9 has a known issue with large SSL requests that we work around:
           # https://github.com/urllib3/urllib3/pull/3181#issuecomment-1794830698
           - python-version: "3.9"
             os: ubuntu-latest
-            experimental: false
             nox-session: test_integration
           - python-version: "3.12"
             os: ubuntu-latest
-            experimental: false
             nox-session: test_integration
           # OpenSSL 1.1.1
           - python-version: "3.9"
             os: ubuntu-20.04
-            experimental: false
             nox-session: test-3.9
           # pypy
           - python-version: "pypy-3.10"
             os: ubuntu-latest
-            experimental: false
             nox-session: test-pypy3.10
           - python-version: "3.x"
           # brotli
             os: ubuntu-latest
-            experimental: false
             nox-session: test_brotlipy
           # Test CPython with a broken hostname_checks_common_name (the fix is in 3.9.3)
           - python-version: "3.9.2"
             os: ubuntu-20.04  # CPython 3.9.2 is not available for ubuntu-22.04.
-            experimental: false
             nox-session: test-3.9
           - python-version: "3.11"
             os: ubuntu-latest
             nox-session: emscripten
-            experimental: true
 
     runs-on: ${{ matrix.os }}
     name: ${{ fromJson('{"macos-15":"macOS","windows-latest":"Windows","ubuntu-latest":"Ubuntu","ubuntu-20.04":"Ubuntu 20.04 (OpenSSL 1.1.1)","ubuntu-22.04":"Ubuntu 22.04 (OpenSSL 3.0)"}')[matrix.os] }} ${{ matrix.python-version }} ${{ matrix.nox-session}}
-    continue-on-error: ${{ matrix.experimental }}
     timeout-minutes: 30
     steps:
       - name: "Checkout repository"
@@ -113,7 +104,7 @@ jobs:
       - name: "Upload coverage data"
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: coverage-data-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.experimental }}-${{ matrix.nox-session }}
+          name: coverage-data-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.nox-session }}
           path: ".coverage.*"
           if-no-files-found: error
 
