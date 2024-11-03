@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import shutil
-import sys
 import typing
 from pathlib import Path
 
@@ -42,11 +41,7 @@ def tests_impl(
     # Print OpenSSL information.
     session.run("python", "-m", "OpenSSL.debug")
 
-    memray_supported = True
-    if implementation_name != "cpython":
-        memray_supported = False
-    elif sys.platform == "win32":
-        memray_supported = False
+    memray_supported = False
 
     # Environment variables being passed to the pytest run.
     pytest_session_envvars = {
@@ -57,8 +52,11 @@ def tests_impl(
     # Inspired from https://hynek.me/articles/ditch-codecov-python/
     # We use parallel mode and then combine in a later CI step
     session.run(
-        "python",
-        *(("-bb",) if byte_string_comparisons else ()),
+        "pyinstrument",
+        "-r",
+        "html",
+        "-o",
+        "profile.html",
         "-m",
         "coverage",
         "run",

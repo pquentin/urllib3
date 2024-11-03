@@ -119,6 +119,13 @@ jobs:
           path: ".coverage.*"
           if-no-files-found: error
 
+      - name: "Upload PyInstrument data"
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: profile-data-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.experimental }}-${{ matrix.nox-session }}
+          path: "profile.html"
+          if-no-files-found: error
+
 
   coverage:
     if: always()
