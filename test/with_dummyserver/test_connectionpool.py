@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import io
 import logging
 import platform
@@ -38,7 +39,6 @@ from urllib3.util.retry import RequestHistory, Retry
 from urllib3.util.timeout import _TYPE_TIMEOUT, Timeout
 
 from .. import INVALID_SOURCE_ADDRESSES, TARPIT_HOST, VALID_SOURCE_ADDRESSES
-from ..port_helpers import find_unused_port
 from . import PoolFactory
 
 
@@ -398,11 +398,18 @@ class TestConnectionPool(DualHypercornDummyServerTestCase):
     @pytest.mark.parametrize("server_scheme", ["http"], indirect=True)
     def test_connection_error_retries(self, pool_factory: PoolFactory) -> None:
         """ECONNREFUSED error should raise a connection error, with retries"""
-        port = find_unused_port()
-        with pool_factory(self.host, port) as pool:
-            with pytest.raises(MaxRetryError) as e:
-                pool.request("GET", "/", retries=Retry(connect=3))
-            assert type(e.value.reason) is NewConnectionError
+        # Refused connections are mocked instead of connecting to an unused port:
+        # a port that was free when we picked it can be bound by the dummy server
+        # of another test running in parallel, which then receives our requests.
+        refused = ConnectionRefusedError(errno.ECONNREFUSED, "Connection refused")
+        with mock.patch(
+            "urllib3.util.connection.create_connection", side_effect=refused
+        ) as create_connection:
+            with pool_factory(self.host, self.port) as pool:
+                with pytest.raises(MaxRetryError) as e:
+                    pool.request("GET", "/", retries=Retry(connect=3))
+                assert type(e.value.reason) is NewConnectionError
+        assert create_connection.call_count == 4
 
     def test_timeout_success(self, pool_factory: PoolFactory) -> None:
         timeout = Timeout(connect=3, read=5, total=None)

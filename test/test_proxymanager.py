@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+import errno
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,8 +16,6 @@ from urllib3.poolmanager import ProxyManager
 from urllib3.response import HTTPResponse
 from urllib3.util.retry import Retry
 from urllib3.util.url import parse_url
-
-from .port_helpers import find_unused_port
 
 
 class TestProxyManager:
@@ -167,18 +166,28 @@ class TestProxyManager:
             with pytest.raises(LocationParseError):
                 p.connection_from_host(host, scheme="https")
 
-    def test_proxy_connect_retry(self) -> None:
+    @patch("urllib3.util.connection.create_connection")
+    def test_proxy_connect_retry(self, create_connection: MagicMock) -> None:
+        # Refused connections are mocked instead of connecting to an unused port:
+        # a port that was free when we picked it can be bound by the dummy server
+        # of another test running in parallel, which then receives our requests.
+        create_connection.side_effect = ConnectionRefusedError(
+            errno.ECONNREFUSED, "Connection refused"
+        )
+
         retry = Retry(total=None, connect=False)
-        port = find_unused_port()
-        with ProxyManager(f"http://localhost:{port}") as p:
+        with ProxyManager("http://proxy:8080") as p:
             with pytest.raises(ProxyError) as ei:
                 p.urlopen("HEAD", url="http://localhost/", retries=retry)
             assert isinstance(ei.value.original_error, NewConnectionError)
+        assert create_connection.call_count == 1
 
+        create_connection.reset_mock()
         retry = Retry(total=None, connect=2)
-        with ProxyManager(f"http://localhost:{port}") as p:
+        with ProxyManager("http://proxy:8080") as p:
             with pytest.raises(MaxRetryError) as ei1:
                 p.urlopen("HEAD", url="http://localhost/", retries=retry)
             assert ei1.value.reason is not None
             assert isinstance(ei1.value.reason, ProxyError)
             assert isinstance(ei1.value.reason.original_error, NewConnectionError)
+        assert create_connection.call_count == 3
