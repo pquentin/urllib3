@@ -1416,13 +1416,21 @@ class TestProxyManager(SocketDummyServerTestCase):
             assert r.status == 200
 
             close_event.wait(timeout=LONG_TIMEOUT)
-            with pytest.raises(ProxyError):
-                conn.urlopen(
-                    "GET",
-                    "http://www.google.com",
-                    assert_same_host=False,
-                    retries=False,
-                )
+            # The proxy is gone, but an unrelated server can be listening on the
+            # same port number on the other loopback address, and "localhost"
+            # resolves to both addresses. Refuse the connection ourselves
+            # instead of relying on nothing listening on that port.
+            refused = ConnectionRefusedError(errno.ECONNREFUSED, "Connection refused")
+            with mock.patch(
+                "urllib3.util.connection.create_connection", side_effect=refused
+            ):
+                with pytest.raises(ProxyError):
+                    conn.urlopen(
+                        "GET",
+                        "http://www.google.com",
+                        assert_same_host=False,
+                        retries=False,
+                    )
 
     def test_tunnel_sets_http_11_alpn(self) -> None:
         done_receiving = Event()
