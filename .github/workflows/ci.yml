@@ -1,19 +1,27 @@
 name: CI
-run-name: Stress test of ${{ inputs.ref || github.sha }}
+run-name: ${{ inputs.mode == 'repro' && 'Port race reproduction' || format('Stress test of {0}', inputs.ref || github.sha) }}
 
 # STRESS-TEST BRANCH ONLY, DO NOT MERGE.
 #
-# Replaces the regular CI jobs with a stress test: the whole test suite is run
-# 100 times per pytest-xdist configuration on Windows, to check that the
-# port-reuse flake between parallel tests does not come back.
+# Replaces the regular CI jobs with two manually triggered stress tests on
+# Windows, to check that the port-reuse flake between parallel tests does not
+# come back:
+#
+# - mode "suite": the whole test suite is run 100 times per pytest-xdist
+#   configuration.
+# - mode "repro": a targeted reproduction that runs test_proxy_connect_retry
+#   in a loop next to the SOCKS tests, before and after the fix.
 
 on:
-  push:
-    branches: ["stress-flaky-unused-port-tests"]
   workflow_dispatch:
     inputs:
+      mode:
+        description: "suite: whole test suite 100 times; repro: targeted reproduction of the port race"
+        type: choice
+        options: ["suite", "repro"]
+        default: "suite"
       ref:
-        description: "Commit, branch or tag to test (default: the commit the workflow runs from)"
+        description: "suite mode only: commit, branch or tag to test (default: the commit the workflow runs from)"
         required: false
         default: ""
 
@@ -31,6 +39,7 @@ env:
 
 jobs:
   stress:
+    if: ${{ inputs.mode != 'repro' }}
     strategy:
       fail-fast: false
       matrix:
@@ -103,4 +112,174 @@ jobs:
         with:
           name: stress-logs-${{ matrix.python-version }}-n${{ matrix.xdist-workers }}-${{ matrix.shard }}
           path: stress-logs/
+          if-no-files-found: ignore
+
+  # Targeted reproduction of the port race.
+  #
+  # "Culprit": test_proxy_connect_retry. Before the fix it picks a free port,
+  # releases it, and spends about 16 seconds on Windows trying to connect to
+  # it. Many copies run at the same time, so many released ports are probed.
+  #
+  # "Victims": the SOCKS tests. On Windows their IPv4-only dummy server waits
+  # about two seconds for its own client, which first tries ::1. If the server
+  # was given a port that a culprit is probing, it receives the culprit's
+  # "HEAD http://localhost/" request and fails with "assert b'H' == b'\x05'".
+  #
+  # The "baseline" variant tests the commit before the fix, "fix" tests this
+  # branch. Both run exactly the same commands.
+  repro:
+    if: ${{ inputs.mode == 'repro' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ["baseline", "fix"]
+        shard: [1, 2, 3, 4, 5]
+
+    runs-on: windows-latest
+    name: Repro ${{ matrix.variant }} (${{ matrix.shard }})
+    timeout-minutes: 45
+    env:
+      PYTHON_VERSION: "3.10"
+      VARIANT: ${{ matrix.variant }}
+      SHARD: ${{ matrix.shard }}
+      # Copies of the culprit test running at the same time, and how many
+      # times it runs in total (more than the victims need to finish).
+      CULPRIT_WORKERS: 32
+      CULPRIT_REPEAT: 4000
+      # Workers running the SOCKS tests, and how many times each test runs.
+      VICTIM_WORKERS: 16
+      VICTIM_REPEAT: 400
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # baseline: upstream main before the fix
+          ref: ${{ matrix.variant == 'baseline' && '3db5970fcc56666ed5e7d450816ece9cce55589f' || github.sha }}
+          fetch-depth: 0 # Needed to fetch the version from git
+          persist-credentials: false
+
+      - name: "Setup Python ${{ env.PYTHON_VERSION }}"
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: "Install uv"
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.7"
+
+      - name: "Show how the OS hands out ports"
+        run: |
+          python - <<'EOF'
+          import socket
+
+          def bind() -> socket.socket:
+              s = socket.socket()
+              s.bind(("127.0.0.1", 0))
+              return s
+
+          held = [bind() for _ in range(10)]
+          print("10 ports held at the same time:", [s.getsockname()[1] for s in held])
+          for s in held:
+              s.close()
+
+          ports = []
+          for _ in range(10):
+              s = bind()
+              ports.append(s.getsockname()[1])
+              s.close()
+          print("10 ports bound and released in turn:", ports)
+          EOF
+
+      - name: "Run the SOCKS tests next to test_proxy_connect_retry"
+        run: |
+          # Minimal pytest plugin: run every selected test N times (--repeat N).
+          mkdir -p _stress
+          cat > _stress/repeat_plugin.py <<'EOF'
+          import pytest
+
+
+          def pytest_addoption(parser):
+              parser.addoption("--repeat", type=int, default=1)
+
+
+          def pytest_generate_tests(metafunc):
+              count = metafunc.config.getoption("--repeat")
+              if count > 1:
+                  metafunc.fixturenames.append("_repeat_step")
+                  metafunc.parametrize(
+                      "_repeat_step", range(count), ids=lambda i: f"run{i + 1}of{count}"
+                  )
+
+
+          @pytest.fixture
+          def _repeat_step(request):
+              return request.param
+          EOF
+
+          # Build the same environment as the regular CI, without running tests.
+          uvx nox -R -s "test-$PYTHON_VERSION" -- --collect-only -q test/test_proxymanager.py > nox-setup.log 2>&1 || { cat nox-setup.log; exit 1; }
+          envdir=".nox/test-${PYTHON_VERSION//./-}"
+          if [[ -x "$envdir/Scripts/python.exe" ]]; then
+            python="$envdir/Scripts/python.exe"
+          else
+            python="$envdir/bin/python"
+          fi
+
+          export PYTHONPATH=_stress PYTHONWARNINGS=always::FutureWarning
+          pytest=(
+            "$python" -m pytest -q -p repeat_plugin -p no:cacheprovider
+            --tb=native --strict-config --strict-markers
+            --disable-socket --allow-unix-socket
+            "--allow-hosts=localhost,127.0.0.1,::1,127.0.0.0,240.0.0.0"
+          )
+
+          # Culprit, in the background.
+          "${pytest[@]}" -n "$CULPRIT_WORKERS" --repeat "$CULPRIT_REPEAT" \
+            "test/test_proxymanager.py::TestProxyManager::test_proxy_connect_retry" \
+            > culprit.log 2>&1 &
+          culprit_pid=$!
+          sleep 30 # Let the culprit workers start.
+
+          # Victims. test_connection_failure is left out because it connects
+          # to a released port too, which would blur the comparison.
+          victims_status=0
+          "${pytest[@]}" -rfE -n "$VICTIM_WORKERS" --repeat "$VICTIM_REPEAT" \
+            test/contrib/test_socks.py \
+            --deselect "test/contrib/test_socks.py::TestSocks5Proxy::test_connection_failure" \
+            > victims.log 2>&1 || victims_status=$?
+
+          # The culprit is only there to disturb the victims: stop it.
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            taskkill //F //T //PID "$(cat "/proc/$culprit_pid/winpid")" > /dev/null 2>&1 || true
+          else
+            kill "$culprit_pid" > /dev/null 2>&1 || true
+          fi
+          sleep 5
+
+          head_hits=$(grep -c "AssertionError: assert b'H' ==" victims.log || true)
+          not_passed=$(grep -c -E "^(FAILED|ERROR) " victims.log || true)
+          echo "RESULT variant=$VARIANT shard=$SHARD victims_exit=$victims_status failed_or_errored=$not_passed head_hits=$head_hits | $(tail -n 1 victims.log)"
+          {
+            echo "### $VARIANT ($SHARD)"
+            echo "- SOCKS test run: \`$(tail -n 1 victims.log)\`"
+            echo "- Failed or errored SOCKS tests: $not_passed"
+            echo "- SOCKS servers that received the culprit's HEAD request: $head_hits"
+            echo '```'
+            grep -E "^(FAILED|ERROR) " victims.log | sed -E 's/\[run[0-9]+of[0-9]+\]//; s/ - .*//' | sort | uniq -c | sort -rn | head -n 30 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "--- last lines of the culprit run ---"
+          tail -n 5 culprit.log
+          [[ "$victims_status" -eq 0 ]]
+
+      - name: "Upload logs"
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: repro-logs-${{ matrix.variant }}-${{ matrix.shard }}
+          path: |
+            victims.log
+            culprit.log
+            nox-setup.log
           if-no-files-found: ignore
