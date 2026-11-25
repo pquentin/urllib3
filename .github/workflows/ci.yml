@@ -1,4 +1,5 @@
 name: CI
+run-name: Stress test of ${{ inputs.ref || github.sha }}
 
 # STRESS-TEST BRANCH ONLY, DO NOT MERGE.
 #
